@@ -10,6 +10,8 @@ pub use crate::macos::display::display_size;
 pub use crate::macos::grab::{exit_grab, grab, is_grabbed};
 pub use crate::macos::keyboard::Keyboard;
 pub use crate::macos::listen::listen;
+pub use crate::macos::listen::stop_listen;
+pub use crate::macos::simulate::get_current_mouse_location;
 pub use crate::macos::simulate::{
     set_keyboard_extra_info, set_mouse_extra_info, simulate, VirtualInput,
 };

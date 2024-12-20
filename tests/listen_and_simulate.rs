@@ -53,9 +53,16 @@ fn test_listen_and_simulate() -> Result<(), Box<dyn Error>> {
         //EventType::KeyPress(Key::ShiftLeft),
         EventType::KeyPress(Key::KeyS),
         EventType::KeyRelease(Key::KeyS),
-        EventType::ButtonPress(Button::Right),
-        EventType::ButtonRelease(Button::Right),
-        EventType::Wheel {
+        EventType::ButtonPress {
+            button: Button::Right,
+            x: 0.0,
+            y: 0.0,
+        },
+        EventType::ButtonRelease {
+            button: Button::Right,
+            x: 0.0,
+            y: 0.0,
+        },        EventType::Wheel {
             delta_x: 0,
             delta_y: 1,
         },

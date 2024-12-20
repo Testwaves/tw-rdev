@@ -34,9 +34,7 @@ static mut CUR_LOOP: CFRunLoopSourceRef = std::ptr::null_mut();
 
 #[inline]
 pub fn is_grabbed() -> bool {
-    unsafe {
-        !CUR_LOOP.is_null()
-    }
+    unsafe { !CUR_LOOP.is_null() }
 }
 
 pub fn grab<T>(callback: T) -> Result<(), GrabError>

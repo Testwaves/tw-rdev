@@ -2,13 +2,15 @@ use crate::{
     rdev::{Event, ListenError},
     windows::common::{convert, get_scan_code, set_key_hook, set_mouse_hook, HookError},
 };
+use std::sync::mpsc;
 use std::{os::raw::c_int, ptr::null_mut, time::SystemTime};
+
 use winapi::{
     shared::{
         basetsd::ULONG_PTR,
         minwindef::{LPARAM, LRESULT, WPARAM},
     },
-    um::winuser::{CallNextHookEx, GetMessageA, HC_ACTION, PKBDLLHOOKSTRUCT, PMOUSEHOOKSTRUCT},
+    um::winuser::{CallNextHookEx, PeekMessageA, HC_ACTION, PKBDLLHOOKSTRUCT, PMOUSEHOOKSTRUCT},
 };
 
 static mut GLOBAL_CALLBACK: Option<Box<dyn FnMut(Event)>> = None;
@@ -40,7 +42,7 @@ unsafe fn raw_callback(
                 usb_hid: 0,
                 extra_data: f_get_extra_data(lpdata),
             };
-            if let Some(callback) = &mut GLOBAL_CALLBACK {
+            if let Some(ref mut callback) = GLOBAL_CALLBACK {
                 callback(event);
             }
         }
@@ -71,7 +73,30 @@ where
             set_mouse_hook(raw_callback_mouse)?;
         }
 
-        GetMessageA(null_mut(), null_mut(), 0, 0);
+        let (sender, receiver) = mpsc::channel();
+        STOP_LOOP = Some(Box::new(move || {
+            sender.send(true).unwrap();
+        }));
+        loop {
+            if let Ok(stop_listen) = receiver.try_recv() {
+                if stop_listen {
+                    break;
+                }
+            }
+            PeekMessageA(null_mut(), null_mut(), 0, 0, 0);
+        }
     }
     Ok(())
 }
+
+pub fn stop_listen() {
+    unsafe {
+        if let Some(stop_loop) = STOP_LOOP.as_ref() {
+            stop_loop();
+            STOP_LOOP = None;
+        }
+    }
+}
+
+type DynFn = dyn Fn() + 'static;
+pub static mut STOP_LOOP: Option<Box<DynFn>> = None;

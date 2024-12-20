@@ -3,10 +3,12 @@ use crate::keycodes::macos::virtual_keycodes::*;
 use crate::macos::keyboard::Keyboard;
 use crate::rdev::{Button, Event, EventType, Key};
 use cocoa::base::id;
+use core_graphics::geometry::CGPoint;
 use core_graphics::{
     event::{CGEvent, CGEventFlags, CGEventTapLocation, CGEventType, CGKeyCode, EventField},
     event_source::CGEventSourceStateID,
 };
+
 use lazy_static::lazy_static;
 use std::convert::TryInto;
 use std::os::raw::c_void;
@@ -163,22 +165,43 @@ pub unsafe fn convert(
     keyboard_state: &mut Keyboard,
 ) -> Option<Event> {
     let mut code = 0;
+    let CGPoint { x, y } = cg_event.location();
     let option_type = match _type {
-        CGEventType::LeftMouseDown => Some(EventType::ButtonPress(Button::Left)),
-        CGEventType::LeftMouseUp => Some(EventType::ButtonRelease(Button::Left)),
-        CGEventType::RightMouseDown => Some(EventType::ButtonPress(Button::Right)),
-        CGEventType::RightMouseUp => Some(EventType::ButtonRelease(Button::Right)),
-        CGEventType::MouseMoved => {
-            let point = cg_event.location();
-            Some(EventType::MouseMove {
-                x: point.x,
-                y: point.y,
-            })
-        }
+        CGEventType::LeftMouseDown => Some(EventType::ButtonPress {
+            button: Button::Left,
+            x,
+            y,
+        }),
+        CGEventType::LeftMouseUp => Some(EventType::ButtonRelease {
+            button: Button::Left,
+            x,
+            y,
+        }),
+        CGEventType::RightMouseDown => Some(EventType::ButtonPress {
+            button: Button::Right,
+            x,
+            y,
+        }),
+        CGEventType::RightMouseUp => Some(EventType::ButtonRelease {
+            button: Button::Right,
+            x,
+            y,
+        }),
+        CGEventType::MouseMoved => Some(EventType::MouseMove { x, y }),
         CGEventType::KeyDown => {
             code = get_code(cg_event)?;
             Some(EventType::KeyPress(key_from_code(code)))
         }
+        CGEventType::LeftMouseDragged => Some(EventType::Drag {
+            button: Button::Left,
+            x,
+            y,
+        }),
+        CGEventType::RightMouseDragged => Some(EventType::Drag {
+            button: Button::Right,
+            x,
+            y,
+        }),
         CGEventType::KeyUp => {
             code = get_code(cg_event)?;
             Some(EventType::KeyRelease(key_from_code(code)))
