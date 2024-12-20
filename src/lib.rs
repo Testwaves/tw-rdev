@@ -1,5 +1,5 @@
 //! Simple library to listen and send events to keyboard and mouse on MacOS, Windows and Linux
-//! (x11).
+//! (x11). - Testwaves version
 //!
 //! You can also check out [Enigo](https://github.com/Enigo-rs/Enigo) which is another
 //! crate which helped me write this one.
