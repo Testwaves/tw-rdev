@@ -62,6 +62,11 @@ fn workaround_fn(event: CGEvent, keycode: CGKeyCode) -> CGEvent {
     event
 }
 
+fn workaround_click(event: CGEvent) -> CGEvent{
+    event.set_integer_value_field(EventField::MOUSE_EVENT_CLICK_STATE, 2);
+    event
+}
+
 unsafe fn convert_native_with_source(
     event_type: &EventType,
     source: CGEventSource,
@@ -116,6 +121,7 @@ unsafe fn convert_native_with_source(
                 point,
                 CGMouseButton::Left, // ignored because we don't use OtherMouse EventType
             )
+            .and_then(|event| Ok(workaround_click(event)))
             .ok()
         }
         EventType::ButtonRelease { button, x, y } => {
