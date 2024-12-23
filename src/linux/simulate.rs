@@ -75,7 +75,7 @@ unsafe fn send_native(event_type: &EventType, display: *mut xlib::Display) -> Op
             xtest::XTestFakeButtonEvent(display, code, TRUE, 0)
                 & xtest::XTestFakeButtonEvent(display, code, FALSE, 0)
         }
-        _ => {}
+        _ => {Ok(())}
     };
     if res == 0 {
         None
