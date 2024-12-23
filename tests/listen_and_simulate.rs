@@ -62,7 +62,8 @@ fn test_listen_and_simulate() -> Result<(), Box<dyn Error>> {
             button: Button::Right,
             x: 0.0,
             y: 0.0,
-        },        EventType::Wheel {
+        },
+        EventType::Wheel {
             delta_x: 0,
             delta_y: 1,
         },

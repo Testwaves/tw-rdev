@@ -1,6 +1,6 @@
 use crate::keycodes::macos::{code_from_key, virtual_keycodes::*};
 use crate::macos::common::CGEventSourceKeyState;
-use crate::rdev::{Button, EventType, RawKey, SimulateError};
+use crate::rdev::{Button, ClickType, EventType, RawKey, SimulateError};
 use core_graphics::{
     event::{
         CGEvent, CGEventFlags, CGEventTapLocation, CGEventType, CGKeyCode, CGMouseButton,
@@ -24,7 +24,6 @@ pub fn set_keyboard_extra_info(extra: i64) {
 }
 
 static mut LAST_CLICK_TIME: Option<Instant> = None;
-
 
 #[allow(non_upper_case_globals)]
 fn workaround_fn(event: CGEvent, keycode: CGKeyCode) -> CGEvent {
@@ -66,23 +65,8 @@ fn workaround_fn(event: CGEvent, keycode: CGKeyCode) -> CGEvent {
     event
 }
 
-fn workaround_click(event: CGEvent) -> CGEvent {
-    const DOUBLE_CLICK_THRESHOLD: Duration = Duration::from_millis(200); // Adjust this threshold as needed
-
-    unsafe {
-        let now = Instant::now();
-        if let Some(last_time) = LAST_CLICK_TIME {
-            if now.duration_since(last_time) <= DOUBLE_CLICK_THRESHOLD {
-                event.set_integer_value_field(EventField::MOUSE_EVENT_CLICK_STATE, 2);
-            } else {
-                event.set_integer_value_field(EventField::MOUSE_EVENT_CLICK_STATE, 1);
-            }
-        } else {
-            event.set_integer_value_field(EventField::MOUSE_EVENT_CLICK_STATE, 1);
-        }
-        LAST_CLICK_TIME = Some(now);
-    }
-
+fn workaround_click(event: CGEvent, click_type: i64) -> CGEvent {
+    event.set_integer_value_field(EventField::MOUSE_EVENT_CLICK_STATE, click_type);
     event
 }
 
@@ -140,7 +124,6 @@ unsafe fn convert_native_with_source(
                 point,
                 CGMouseButton::Left, // ignored because we don't use OtherMouse EventType
             )
-            .and_then(|event| Ok(workaround_click(event)))
             .ok()
         }
         EventType::ButtonRelease { button, x, y } => {
@@ -156,6 +139,38 @@ unsafe fn convert_native_with_source(
                 point,
                 CGMouseButton::Left, // ignored because we don't use OtherMouse EventType
             )
+            .ok()
+        }
+        EventType::DoubleClick { button, x, y } => {
+            let point = CGPoint { x: *x, y: *y };
+            let event = match button {
+                Button::Left => CGEventType::LeftMouseDown,
+                Button::Right => CGEventType::RightMouseDown,
+                _ => return None,
+            };
+            CGEvent::new_mouse_event(
+                source,
+                event,
+                point,
+                CGMouseButton::Left, // ignored because we don't use OtherMouse EventType
+            )
+            .and_then(|event| Ok(workaround_click(event, 2)))
+            .ok()
+        }
+        EventType::TripleClick { button, x, y } => {
+            let point = CGPoint { x: *x, y: *y };
+            let event = match button {
+                Button::Left => CGEventType::LeftMouseDown,
+                Button::Right => CGEventType::RightMouseDown,
+                _ => return None,
+            };
+            CGEvent::new_mouse_event(
+                source,
+                event,
+                point,
+                CGMouseButton::Left, // ignored because we don't use OtherMouse EventType
+            )
+            .and_then(|event| Ok(workaround_click(event, 3)))
             .ok()
         }
         EventType::MouseMove { x, y } => {
@@ -252,6 +267,4 @@ impl VirtualInput {
     pub fn get_key_state(state_id: CGEventSourceStateID, keycode: CGKeyCode) -> bool {
         unsafe { CGEventSourceKeyState(state_id, keycode) }
     }
-
-    
 }

@@ -296,6 +296,13 @@ pub enum Button {
     Middle,
     Unknown(u8),
 }
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+pub enum ClickType {
+    Single,
+    Double,
+    Triple,
+}
 
 /// In order to manage different OSs, the current EventType choices are a mix and
 /// match to account for all possible events.
@@ -318,6 +325,16 @@ pub enum EventType {
         y: f64,
     },
     Drag {
+        button: Button,
+        x: f64,
+        y: f64,
+    },
+    DoubleClick {
+        button: Button,
+        x: f64,
+        y: f64,
+    },
+    TripleClick {
         button: Button,
         x: f64,
         y: f64,
