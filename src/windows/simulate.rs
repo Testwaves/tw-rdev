@@ -203,6 +203,7 @@ pub fn simulate(event_type: &EventType) -> Result<(), SimulateError> {
             let event_type = EventType::MouseMove { x: *x, y: *y };
             simulate(&event_type)
         }
+        _ => {}
     }
 }
 
