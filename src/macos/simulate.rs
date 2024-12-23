@@ -215,6 +215,7 @@ impl VirtualInput {
     pub fn simulate(&self, event_type: &EventType) -> Result<(), SimulateError> {
         unsafe {
             if let Some(cg_event) = convert_native_with_source(event_type, self.source.clone()) {
+                cg_event.set_integer_value_field(EventField::EVENT_SOURCE_USER_DATA, MOUSE_EXTRA_INFO);
                 cg_event.post(self.tap_loc);
                 Ok(())
             } else {
