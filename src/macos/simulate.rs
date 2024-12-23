@@ -10,6 +10,7 @@ use core_graphics::{
     geometry::CGPoint,
 };
 use std::convert::TryInto;
+use std::time::{Duration, Instant};
 
 static mut MOUSE_EXTRA_INFO: i64 = 0;
 static mut KEYBOARD_EXTRA_INFO: i64 = 0;
@@ -21,6 +22,9 @@ pub fn set_mouse_extra_info(extra: i64) {
 pub fn set_keyboard_extra_info(extra: i64) {
     unsafe { KEYBOARD_EXTRA_INFO = extra }
 }
+
+static mut LAST_CLICK_TIME: Option<Instant> = None;
+
 
 #[allow(non_upper_case_globals)]
 fn workaround_fn(event: CGEvent, keycode: CGKeyCode) -> CGEvent {
@@ -62,8 +66,23 @@ fn workaround_fn(event: CGEvent, keycode: CGKeyCode) -> CGEvent {
     event
 }
 
-fn workaround_click(event: CGEvent) -> CGEvent{
-    event.set_integer_value_field(EventField::MOUSE_EVENT_CLICK_STATE, 2);
+fn workaround_click(event: CGEvent) -> CGEvent {
+    const DOUBLE_CLICK_THRESHOLD: Duration = Duration::from_millis(200); // Adjust this threshold as needed
+
+    unsafe {
+        let now = Instant::now();
+        if let Some(last_time) = LAST_CLICK_TIME {
+            if now.duration_since(last_time) <= DOUBLE_CLICK_THRESHOLD {
+                event.set_integer_value_field(EventField::MOUSE_EVENT_CLICK_STATE, 2);
+            } else {
+                event.set_integer_value_field(EventField::MOUSE_EVENT_CLICK_STATE, 1);
+            }
+        } else {
+            event.set_integer_value_field(EventField::MOUSE_EVENT_CLICK_STATE, 1);
+        }
+        LAST_CLICK_TIME = Some(now);
+    }
+
     event
 }
 
@@ -221,7 +240,6 @@ impl VirtualInput {
     pub fn simulate(&self, event_type: &EventType) -> Result<(), SimulateError> {
         unsafe {
             if let Some(cg_event) = convert_native_with_source(event_type, self.source.clone()) {
-                cg_event.set_integer_value_field(EventField::EVENT_SOURCE_USER_DATA, MOUSE_EXTRA_INFO);
                 cg_event.post(self.tap_loc);
                 Ok(())
             } else {
@@ -234,4 +252,6 @@ impl VirtualInput {
     pub fn get_key_state(state_id: CGEventSourceStateID, keycode: CGKeyCode) -> bool {
         unsafe { CGEventSourceKeyState(state_id, keycode) }
     }
+
+    
 }
